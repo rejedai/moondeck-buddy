@@ -99,6 +99,26 @@ void SteamGameProcessLogTracker::onLogChanged(const std::vector<QString>& new_li
                 added_app_ids.erase(*app_id);
             }
         }
+
+        static const QRegularExpression game_exit_regex{R"(Remove (\d+) from running list)"};
+        if (const auto match{game_exit_regex.match(line)}; match.hasMatch())
+        {
+            const auto app_id{AppId::fromString(match.captured(1))};
+            if (!app_id)
+            {
+                qCWarning(lc::steam) << "Failed to get AppID from" << line;
+                continue;
+            }
+
+            if (m_app_id_to_process_ids.erase(*app_id) > 0)
+            {
+                if (!added_app_ids.contains(*app_id))
+                {
+                    removed_app_ids.insert(*app_id);
+                }
+                added_app_ids.erase(*app_id);
+            }
+        }
     }
 
     for (const auto& app_id : added_app_ids)
